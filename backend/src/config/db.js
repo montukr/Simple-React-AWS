@@ -8,11 +8,7 @@ const sequelize = new Sequelize(
     host: process.env.DB_HOST,
     port: process.env.DB_PORT || 3306,
     dialect: "mysql",
-    logging: false,
-    dialectOptions: {
-      // If your RDS enforces TLS, keep this; otherwise you can remove.
-      ssl: { require: true, rejectUnauthorized: false },
-    },
+    logging: false
   }
 );
 
