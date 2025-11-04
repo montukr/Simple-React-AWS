@@ -1,0 +1,120 @@
+:root {
+  --bg: #f7f8fa;
+  --card: #ffffff;
+  --text: #0f172a;
+  --muted: #667085;
+  --border: #e5e7eb;
+  --accent: #1f6feb;
+  --shadow: 0 2px 14px rgba(0, 0, 0, 0.08);
+}
+
+:root[data-theme="dark"] {
+  --bg: #0b1220;
+  --card: #0f172a;
+  --text: #e6e9ef;
+  --muted: #9aa4b2;
+  --border: #1b2437;
+  --accent: #7aa2ff;
+  --shadow: 0 2px 18px rgba(0, 0, 0, 0.45);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, sans-serif;
+}
+
+/* Wrapper */
+.auth-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 64px);
+  padding: 20px;
+}
+
+/* Card */
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 26px 26px 30px;
+  box-shadow: var(--shadow);
+  animation: fadeUp .25s ease;
+}
+
+/* Title Text */
+.auth-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+.auth-sub {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* Form */
+.auth-form {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.auth-input {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--text);
+  font-size: 14px;
+}
+.auth-input:focus {
+  outline: 2px solid var(--accent);
+  border-color: var(--accent);
+}
+
+/* Button */
+.auth-btn {
+  margin-top: 4px;
+  padding: 10px 14px;
+  font-size: 15px;
+  font-weight: 600;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: opacity .2s ease;
+}
+.auth-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.auth-btn:hover:not(:disabled) { opacity: 0.85; }
+
+/* Message */
+.auth-msg {
+  margin-top: 10px;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* Switch link */
+.auth-switch {
+  text-align: center;
+  margin-top: 18px;
+  font-size: 14px;
+}
+.auth-switch a {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+.auth-switch a:hover { text-decoration: underline; }
+
+/* Animations */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

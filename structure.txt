@@ -1,0 +1,347 @@
+/var/www/
+simple-react-aws/
+         ├── backend/
+         │    ├── src/
+         │    │   ├── server.js
+         │    │   ├── routes/
+         │    │   ├── controllers/
+         │    │   ├── models/
+         │    │   └── config/
+         │    ├── package.json
+         │    ├── node_modules/
+         │    └── .env
+         ├── frontend/
+         │    └── build/   ← React production build
+
+
+------------------------------------------------------------------------
+/etc/nginx/sites-available/app
+server {
+    listen 80;
+    server_name _;
+
+    # React frontend build folder
+    root /var/www/simple-react-aws/frontend/build;
+    index index.html;
+
+    # Proxy API calls to Node/Express
+    location /api/ {
+        proxy_pass http://127.0.0.1:5000;   # ✅ no trailing slash
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    # React SPA fallback
+    location / {
+        try_files $uri /index.html;
+    }
+}
+------------------------------------------------------------------------
+sudo ln -s /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+------------------------------------------------------------------------
+pm2 start ecosystem.config.js
+pm2 save
+pm2 startup
+
+
+
+
+
+
+
+Below is an expanded version of the steps, with more explanation for **what** you are doing and **why** each step matters. This version is suitable for documentation, assignment submission, or as a deployment guide.
+
+---
+
+## ✅ Deployment Strategy Summary
+
+You will deploy a full-stack MERN-style app (React + Node/Express + MySQL) using **only one EC2 instance** (for both frontend and backend) and **one AWS RDS MySQL instance** for the database.
+
+### Why this design?
+
+| Component | Service                                        | Reason                                                                    |
+| --------- | ---------------------------------------------- | ------------------------------------------------------------------------- |
+| Backend   | Node/Express running on EC2                    | Full control, install dependencies, run server                            |
+| Frontend  | React static build served by Nginx on same EC2 | No need for separate S3/CloudFront, cheaper, simpler                      |
+| Database  | Amazon RDS MySQL                               | Managed DB, auto backups, easy scaling, no need to install MySQL manually |
+
+This is the **simplest real-world AWS deployment** that still follows industry standards (reverse proxy, DB isolation, environment variables, PM2 process manager, etc.).
+
+---
+
+## 🏗️ Step-by-Step Elaboration
+
+---
+
+### **Step 1: Create RDS MySQL**
+
+1. Go to **AWS Console → RDS → Create Database**
+2. Choose:
+
+   * Engine: **MySQL 8.x**
+   * Templates: **Free tier / Dev & Test**
+   * DB instance class: **db.t3.micro** (free tier eligible)
+   * Storage: **20 GiB gp3**
+   * Availability: **Single-AZ** (cheaper)
+   * Backup: Enable automated backups
+3. Credentials:
+
+   * Master username and password (store somewhere secure)
+4. Networking:
+
+   * Must be in the **same VPC** as your EC2 instance
+   * Public access: **No**
+   * Create security group like:
+
+     * **Inbound 3306 only from EC2 security group**
+5. When created, **save the RDS endpoint**, example:
+
+   ```
+   mydb.abcdefg123.us-east-1.rds.amazonaws.com
+   ```
+
+✅ Why?
+RDS handles backups, storage, and maintenance. You don’t expose DB to the internet → only EC2 can connect = secure.
+
+---
+
+### **Step 2: Launch EC2 & Install Stack**
+
+1. Go to **EC2 → Launch Instance**
+
+2. Choose:
+
+   * OS: Ubuntu 22.04 LTS
+   * Instance type: **t3.micro**
+
+3. Security group example:
+
+   | Port | Purpose          | Source       |
+   | ---- | ---------------- | ------------ |
+   | 22   | SSH              | Your IP only |
+   | 80   | HTTP             | 0.0.0.0/0    |
+   | 443  | HTTPS (optional) | 0.0.0.0/0    |
+
+4. SSH into instance:
+
+   ```sh
+   ssh -i your-key.pem ubuntu@EC2_PUBLIC_IP
+   ```
+
+5. Install stack:
+
+   ```sh
+   sudo apt update && sudo apt install -y nginx git
+   ```
+
+6. Install Node LTS + PM2:
+
+   ```sh
+   curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+   sudo apt install -y nodejs
+   sudo npm i -g pm2
+   ```
+
+✅ Why Nginx?
+To serve frontend AND reverse proxy backend → avoids CORS issues.
+
+✅ Why PM2?
+Keeps Node running forever (auto-restart on crash + reboot).
+
+---
+
+### **Step 3: Push Your App Code to EC2**
+
+Preferred folders:
+
+```
+/var/www/simple-react-aws/app        → backend
+/var/www/simple-react-aws/frontend   → react build output
+```
+
+Clone your repo:
+
+```sh
+cd /var/www
+sudo git clone https://github.com/your/repo.git app
+cd app/backend
+npm ci      # or npm install
+```
+
+✅ Why `/var/www`?
+Linux convention for web deployments.
+
+---
+
+### **Step 4: Create `.env` on EC2**
+
+Inside `/var/www/simple-react-aws/backend/.env`
+
+```
+PORT=5000
+JWT_SECRET=prod_secret
+DB_HOST=mydb.abcdefg123.us-east-1.rds.amazonaws.com
+DB_PORT=3306
+DB_USER=admin
+DB_PASS=yourpassword
+DB_NAME=users
+```
+
+⚠️ Do **NOT** commit `.env` to GitHub.
+
+✅ Why?
+Secrets must stay on server. `.env` variables are auto-loaded using `dotenv`.
+
+---
+
+### **Step 5: Start Backend With PM2**
+
+```sh
+pm2 start src/server.js --name api
+pm2 save
+pm2 startup
+```
+
+View logs:
+
+```sh
+pm2 logs api
+```
+
+✅ Why pm2 save & startup?
+So the app restarts automatically after reboot.
+
+---
+
+### **Step 6: Build & Serve Frontend (React)**
+
+#### On local dev machine:
+
+```
+cd frontend
+npm run build
+```
+
+Copy to EC2:
+
+```
+scp -r build ubuntu@EC2:/var/www/frontend
+```
+
+#### Configure Nginx
+
+Create file: `/etc/nginx/sites-available/app`
+
+```
+server {
+   listen 80;
+   root /var/www/frontend;
+   index index.html;
+
+   location /api/ {
+      proxy_pass http://127.0.0.1:5000/;
+      proxy_set_header Host $host;
+   }
+
+   location / {
+      try_files $uri /index.html;
+   }
+}
+```
+
+Enable & reload Nginx:
+
+```sh
+sudo rm /etc/nginx/sites-enabled/default
+sudo ln -s /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+✅ Why proxy_pass?
+Frontend calls `/api`, but Nginx forwards to backend → no CORS issue.
+
+---
+
+### **Step 7: Test Everything**
+
+* Open browser: `http://EC2_PUBLIC_IP`
+* Use Register/Login form
+* Check DB using MySQL client or AWS RDS console:
+
+```sql
+SELECT * FROM users;
+```
+
+✅ You should see new rows after registering.
+
+---
+
+### **Step 8: Security Checklist**
+
+☑ DB not public
+☑ EC2 port 22 locked to your IP
+☑ Backend not exposed on public port (only via Nginx)
+☑ `.env` not committed
+☑ No hardcoded secrets in repo
+
+---
+
+### **Step 9: Scaling Screenshots (for Assignment)**
+
+To simulate scaling:
+
+| Service | Change                    | Reason                           |
+| ------- | ------------------------- | -------------------------------- |
+| EC2     | t3.micro → t3.small       | Show horizontal/vertical scaling |
+| RDS     | db.t3.micro → db.t3.small | Shows DB compute scaling         |
+
+Screenshots needed:
+✅ Before scaling
+✅ Modify screen
+✅ After scaling
+
+---
+
+### ⚠️ Common Errors & Fixes
+
+| Issue                       | Fix                                   |
+| --------------------------- | ------------------------------------- |
+| Sequelize can't connect     | Security group rules or wrong DB host |
+| Nginx shows 502 Bad Gateway | PM2 app not running / wrong port      |
+| React app gives CORS error  | Use `/api` proxy instead of full URL  |
+| Connection refused MySQL    | RDS must allow EC2 SG on port 3306    |
+
+---
+
+## ✅ Result
+
+You now have a **production-style AWS deployment**:
+
+```
+[ Internet ]
+      ↓
+[ NGINX on EC2 ] → serves React + proxies API
+      ↓
+[ Node/Express + PM2 ]
+      ↓
+[ RDS MySQL (private) ]
+```
+
+---
+
+If you want, I can also provide:
+✅ Full Nginx file ready to copy
+✅ PM2 ecosystem file
+✅ Sample folder structure diagram
+✅ Optional HTTPS with Certbot
+✅ Auto-deploy GitHub Action script
+
+Just tell me **"give extra files"** and I’ll send them.
