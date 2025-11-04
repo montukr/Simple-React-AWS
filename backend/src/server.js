@@ -1,10 +1,10 @@
 import express from "express";
 import dotenv from "dotenv";
+dotenv.config();
 import cors from "cors";
 import authRoutes from "./routes/authRoutes.js";
 import { initDb } from "./models/index.js";
 
-dotenv.config();
 
 const app = express();
 app.use(express.json());
