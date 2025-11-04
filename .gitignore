@@ -1,80 +1,56 @@
-# -------------------------------
-# 🌍 General
-# -------------------------------
+# ===== General =====
+node_modules/
+.env
 .DS_Store
 Thumbs.db
-.env
-*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
+package-lock.json
+pnpm-lock.yaml
+*.log
 
-# Node modules
-node_modules/
-**/node_modules/
-
-# Build outputs
+# ===== Build Output =====
 dist/
 build/
-.cache/
-coverage/
-tmp/
+.out/
+.tmp/
 temp/
 
-# Editor directories and files
+# ===== IDE / Editor =====
 .vscode/
 .idea/
-*.swp
-*.swo
-*.swn
-*.bak
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
 
-# OS generated files
+# ===== OS Specific =====
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
 ehthumbs.db
-Icon?
-desktop.ini
+Thumbs.db
 
-# -------------------------------
-# 🚀 Backend (Express + MongoDB)
-# -------------------------------
-backend/.env
-backend/node_modules/
-backend/package-lock.json
-backend/coverage/
-backend/logs/
-backend/uploads/
-
-# Database files
-*.db
-*.sqlite
-*.mongo
-dump.rdb
-
-# -------------------------------
-# ⚛️ Frontend (React)
-# -------------------------------
-frontend/.env
+# ===== Frontend (React) =====
 frontend/node_modules/
-frontend/package-lock.json
 frontend/build/
-frontend/.cache/
-frontend/.next/
-frontend/coverage/
-frontend/public/static/
-frontend/yarn.lock
+frontend/.env
+frontend/.DS_Store
 
-# Testing
-frontend/jest-test-results.json
-frontend/coverage/
+# ===== Backend (Node + Express) =====
+backend/node_modules/
+backend/.env
+backend/.DS_Store
 
-# -------------------------------
-# 🧩 Misc
-# -------------------------------
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-*.pem
-*.crt
-*.key
+# ===== Database Files (MongoDB / MySQL Dumps) =====
+*.sql
+*.sqlite
+*.db
+dump/
+data/
+mongodb/
+mysql/
